@@ -1,0 +1,89 @@
+var fs = require('fs');
+var _ = require('underscore');
+var file = 'C:\\__JHBAK\\0901.txt';
+
+fs.readFile(file, { encoding: 'utf8' }, function(err, data){
+
+
+	var subjects = unzip(data);
+
+	console.info('------------------------------------');
+	console.info('共有' + subjects.length + '道题目');
+
+	var subjectsUnique = _.uniq(subjects, function(subject){
+		return subject.title;
+	});
+
+	console.info('去重后，共' + subjectsUnique.length + '道题目');
+
+	var subjectsReduce = _.difference(subjects, subjectsUnique);
+	console.info('重复' + subjectsReduce.length + '题');
+
+	var reduceData = zip(subjectsReduce);
+	fs.writeFile(file + '.reduce', reduceData, { encoding: 'utf8' }, function(err) {
+		err && console.error(err);
+		console.info('重复题目已保存到：' + file + '.reduce');
+	});
+
+	var resultData = zip(subjectsUnique);
+	fs.writeFile(file + '.out', resultData, { encoding: 'utf8' }, function(err){
+		err && console.error(err);
+		console.info('题目已去重，保存到：' + file + '.out');
+	});
+
+	function unzip(data) {
+
+		data = data.toString().replace(/(\r\n)+/gim, '|-----|');
+		var lines = data.split('|-----|');
+		lines = _.compact(lines);
+
+		var startIndexes = [ 0 ];
+		var subjects = [ ];
+
+		for (var i = 0; i < lines.length; i ++) {
+			if (lines[i].indexOf('答案：') != -1) {
+				lines[i + 1] != '' && startIndexes.push(i + 1);
+				i ++;
+			}
+		}
+		for (var idx = 0; idx < startIndexes.length; idx ++) {
+			var subject = {
+				title: lines[startIndexes[idx]],
+				answers: [ ]
+			};
+			for (var j = startIndexes[idx] + 1; j < startIndexes[idx + 1]; j ++) {
+				subject.answers.push(lines[j]);
+			}
+			subjects.push(subject);
+		}
+
+		return subjects;
+	}
+
+	function zip(subjects) {
+
+		var lines = [ ];
+
+		for ( var i = 0; i < subjects.length; i ++ ) {
+
+			lines.push(subjects[i].title);
+			for (var j = 0; j < subjects[i].answers.length; j ++) {
+				if ( subjects[i].answers[j].indexOf('答案：') != -1 ) {
+					lines.push('');
+					lines.push(subjects[i].answers[j]);
+					lines.push('');
+				}
+				else {
+					lines.push(subjects[i].answers[j]);
+				}
+			}
+		}
+
+		return lines.join('\r\n');
+
+	}
+
+
+
+} );
+
